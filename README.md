@@ -1,163 +1,97 @@
-#  RAG Chatbot
+# 🎾 The Padel Company — AI Support Chatbot
 
-> An AI-powered customer support chatbot for [thepadelcompany.in](https://thepadelcompany.in) — built with a full Retrieval-Augmented Generation (RAG) pipeline using 100% free-tier tools.
-
-![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)
-![ChromaDB](https://img.shields.io/badge/ChromaDB-Local_Vector_DB-orange?style=flat-square)
-![Groq](https://img.shields.io/badge/Groq-llama3--70b-F55036?style=flat-square)
-![HuggingFace](https://img.shields.io/badge/HuggingFace-all--MiniLM--L6--v2-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+An AI-powered customer support chatbot for [thepadelcompany.in](https://thepadelcompany.in) — built with a Retrieval-Augmented Generation (RAG) pipeline using ChromaDB, sentence-transformers, and Groq's Llama 3.3 model.
 
 ---
 
-##  What this does
+## ✨ Features
 
-Instead of a generic chatbot, this system **reads the actual website**, understands it semantically, and answers user questions strictly from that content minimising hallucinations.
-
-A user asks: *"Which padel coaches are available in Pune?"*  
-The bot retrieves the most relevant paragraphs from the site, injects them as context into an LLM, and returns a grounded, accurate answer.
+* **Lazy-Loading Architecture**: Boots instantly (in `<200ms`) and defers model loading until the first query. Highly optimized for memory-constrained cloud environments (such as Render's 512MB free tier) to prevent Out-Of-Memory (OOM) crashes.
+* **Semantic Search & RAG**: Automatically reads local markdown knowledge documents, chunks and encodes them using `all-MiniLM-L6-v2` embeddings, and queries ChromaDB for similarity matches.
+* **Fast Inference**: Connects to the Groq API utilizing `llama-3.3-70b-versatile` for lightning-fast completions.
+* **Premium Minimalist UI**: A beautiful, user-friendly, responsive chat interface designed to match the minimalist light-mode branding of the official website.
 
 ---
-##  Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  INGESTION (one-time)                    │
-│                                                          │
-│  Playwright  →  Chunking  →  Embeddings  →  ChromaDB    │
-│  (scrape)       (400 chars)   (384-dim)     (persist)   │
-└─────────────────────────────────────────────────────────┘
+## 🏗️ Project Structure
 
-┌─────────────────────────────────────────────────────────┐
-│               QUERY FLOW (per message)                   │
-│                                                          │
-│  User question  →  Embed query  →  Top-K retrieval      │
-│        ↓                              ↓                  │
-│  FastAPI POST /chat          ChromaDB similarity search  │
-│        ↓                              ↓                  │
-│  Groq LLM  ←──────── context chunks ─────────────────── │
-│        ↓                                                 │
-│  Grounded answer                                         │
-└─────────────────────────────────────────────────────────┘
+```text
+AI-powered-customer-support/
+├── docs/               # Scraped pages + custom context (pricing, listings, bookings)
+├── chroma_db/          # Persistent local vector store (auto-created during ingestion)
+├── frontend/           # Chat Web Interface
+│   ├── index.html      # Responsive chat viewport with clickable suggestions
+│   ├── style.css       # Clean minimalist stylesheet matching the official brand look
+│   └── app.js          # API connection, bubble renderer, and typing indicators
+├── main.py             # FastAPI backend server
+├── rag.py              # Core RAG search and completions pipeline (lazy-loaded)
+├── ingest.py           # Chunking and embedding generation pipeline
+└── requirements.txt    # Python dependencies
 ```
 
 ---
 
-##  Tech Stack (100% Free)
+## 🚀 Local Setup & Execution
 
-| Layer | Tool | Why |
-|---|---|---|
-| **Scraping** | [Playwright](https://playwright.dev/python/) | Handles JS-rendered pages that `requests` can't see |
-| **Chunking** | [LangChain](https://python.langchain.com/) | `RecursiveCharacterTextSplitter` with overlap |
-| **Embeddings** | [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) | 384-dim, runs on CPU, no API key |
-| **Vector DB** | [ChromaDB](https://www.trychroma.com/) | Local persistence, zero cloud dependency |
-| **LLM** | [Groq](https://console.groq.com) | Free tier: ~14,400 req/day, ultra-fast inference |
-| **Backend** | [FastAPI](https://fastapi.tiangolo.com/) + Uvicorn | Async, auto-docs at `/docs` |
-
----
-
-##  Quickstart
-
-### 1. Clone and install
-
+### 1. Install Dependencies
+Make sure you have Python installed, navigate to the project directory, activate your virtual environment, and install dependencies:
 ```bash
-git clone https://github.com/yourusername/padel-chatbot.git
-cd padel-chatbot
+# Create and activate virtual environment
+python -m venv venv
+venv\Scripts\activate
+
+# Install packages
 pip install -r requirements.txt
-playwright install chromium
 ```
 
-### 2. Set your Groq API key
-
-Get a free key at [console.groq.com](https://console.groq.com)
-
-```bash
-export GROQ_API_KEY=your_key_here
+### 2. Configure Environment Variables
+Create a `.env` file in the project folder and paste your Groq API key:
+```env
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
-### 3. Run the pipeline
-
+### 3. Build the Vector Index
+Run the ingestion script to process your markdown files and build the vector database:
 ```bash
-# Scrape the website → docs/
-python scraper.py
-
-# Embed + store → chroma_db/
 python ingest.py
-
-# Start the API server
-uvicorn main:app --reload --port 8000
 ```
 
-### 4. Test it
-
+### 4. Run the Backend API
+Start your FastAPI server using Uvicorn:
 ```bash
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What are your court booking prices?"}'
+uvicorn main:app --port 8000
 ```
+Your backend will be running at `http://localhost:8000` with interactive API docs available at `http://localhost:8000/docs`.
+
+### 5. Run the Chat UI
+Serve the frontend static files on port `3000`:
+```bash
+python -m http.server 3000 --directory frontend
+```
+Now, open your web browser and navigate to **`http://localhost:3000`** to chat with the assistant!
 
 ---
 
-##  Project Structure
+## ☁️ Cloud Deployment (Render & Vercel)
 
-```
-padel-chatbot/
-├── docs/               ← scraped markdown (auto-created)
-├── chroma_db/          ← vector store (auto-created)
-├── scraper.py          ← Playwright site scraper
-├── ingest.py           ← chunking + embedding pipeline
-├── rag.py              ← retrieval + generation logic
-├── main.py             ← FastAPI app
-├── config.py           ← tunable constants
-└── requirements.txt
-```
+### 1. Deploy the Backend to Render
+Render provides free hosting for Python applications. 
+1. Push your code to a GitHub repository (your `.gitignore` is already set up to exclude local caches and credentials).
+2. Create a new **Web Service** on Render and connect your repository.
+3. Configure the settings:
+   * **Runtime**: `Python`
+   * **Build Command**: `pip install -r requirements.txt && python ingest.py` *(This automatically generates your database index at build time so you don't need persistent cloud storage).*
+   * **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. Add the following **Environment Variable**:
+   * Key: `GROQ_API_KEY`
+   * Value: `your_actual_groq_api_key`
+5. Click **Deploy**. Render will provide a public URL (e.g., `https://your-backend.onrender.com`).
 
----
-
-##  API Reference
-
-### `POST /chat`
-
-```json
-// Request
-{ "question": "How much is Elite membership?" }
-
-// Response
-{ "answer": "Elite membership includes unlimited court access..." }
-```
-
-### `GET /health`
-
-```json
-{ "status": "ok" }
-```
-
-Auto-generated interactive docs available at `http://localhost:8000/docs`
-
----
-
-##  Key Concepts
-
-**Why RAG over fine-tuning?**  
-Fine-tuning a model on site content is expensive, slow to update, and overkill for a chatbot that needs to reflect live website data. RAG retrieves fresh context at query time, re-run ingest whenever the site updates.
-
-**Why cosine similarity?**  
-Embedding vectors encode *direction*, not magnitude. Cosine similarity measures the angle between vectors — two semantically similar sentences produce vectors that point in the same direction regardless of length.
-
-**Why chunk overlap?**  
-A sentence can split right across a chunk boundary. Overlap ensures context isn't lost at edges — if the answer spans two adjacent chunks, the overlapping region gives the retriever a chance to capture it.
-
----
-
-##  Roadmap
-
-- [ ] Streaming responses via SSE
-- [ ] Conversation memory (multi-turn)
-- [ ] Source citations in answers
-- [ ] Auto re-ingestion via GitHub Actions cron
-- [ ] Deploy to Render / Railway
-
----
-This project is for educational purposes only.
-Data was collected from publicly accessible pages.
+### 2. Deploy the Frontend to Vercel/Netlify
+1. Open `frontend/app.js` and update the `API_URL` to point to your live Render backend instead of localhost:
+   ```javascript
+   const API_URL = 'https://your-backend.onrender.com/chat';
+   ```
+2. Commit and push the changes to GitHub.
+3. Connect your repository to **Vercel** or **Netlify**.
+4. Set the **Root Directory** to `frontend` and click **Deploy**.
