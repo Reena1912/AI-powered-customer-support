@@ -21,29 +21,36 @@ if not GROQ_API_KEY:
 print("Groq API key loaded successfully!")
 
 # -----------------------------
-# Load embedding model
+# Lazy Loading Helpers
 # -----------------------------
-print("Loading embedding model...")
+_model = None
+_collection = None
+_groq_client = None
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+def get_model():
+    global _model
+    if _model is None:
+        print("Loading embedding model...")
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+        print("Embedding model loaded!")
+    return _model
 
-print("Embedding model loaded!")
+def get_collection():
+    global _collection
+    if _collection is None:
+        print("Connecting to ChromaDB...")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        db_path = os.path.join(script_dir, "chroma_db")
+        chroma_client = chromadb.PersistentClient(path=db_path)
+        _collection = chroma_client.get_collection("padel_docs")
+        print("Connected to ChromaDB!")
+    return _collection
 
-# -----------------------------
-# Connect to ChromaDB
-# -----------------------------
-print("Connecting to ChromaDB...")
-
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-
-collection = chroma_client.get_collection("padel_docs")
-
-print("Connected to ChromaDB!")
-
-# -----------------------------
-# Initialize Groq client
-# -----------------------------
-groq_client = Groq(api_key=GROQ_API_KEY)
+def get_groq_client():
+    global _groq_client
+    if _groq_client is None:
+        _groq_client = Groq(api_key=GROQ_API_KEY)
+    return _groq_client
 
 # -----------------------------
 # System Prompt
@@ -70,10 +77,10 @@ def retrieve(query: str, top_k: int = 4):
     print(f"Retrieving chunks for: {query}")
 
     # Convert question into embedding
-    query_embedding = model.encode([query]).tolist()
+    query_embedding = get_model().encode([query]).tolist()
 
     # Search ChromaDB
-    results = collection.query(
+    results = get_collection().query(
         query_embeddings=query_embedding,
         n_results=top_k
     )
@@ -111,7 +118,7 @@ Question:
 
     print("Generating response from Groq...")
 
-    response = groq_client.chat.completions.create(
+    response = get_groq_client().chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=messages,
         temperature=0.1,
