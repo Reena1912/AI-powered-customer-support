@@ -3,11 +3,19 @@
 
 # Python
 venv/
+.venv/
 __pycache__/
 *.pyc
 
 # Vector DB
 chroma_db/
+
+# Editor Settings
+.vscode/
+.idea/
+
+# Local Tests
+test_output*.json
 
 # OS files
 .DS_Store

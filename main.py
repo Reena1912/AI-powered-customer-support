@@ -9,7 +9,7 @@ app = FastAPI(title="Padel Chatbot API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # tighten this in production
-    allow_methods=["POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

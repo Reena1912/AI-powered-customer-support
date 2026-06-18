@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- SEO Meta Tags -->
+  <title>The Padel Company — AI Support Chatbot</title>
+  <meta name="description" content="AI-powered customer support chatbot mapping courts, coaches, and padel communities city-by-city across India.">
+  
+  <!-- Google Fonts (Outfit & Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Custom CSS Styling -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Main App Frame -->
+  <main class="app-container" id="appFrame">
+    
+    <!-- Left Sidebar: Branding & Suggested Questions -->
+    <section class="sidebar" id="sidebarContainer">
+      <div class="brand">
+        <div class="brand-icon">TPC</div>
+        <div class="brand-details">
+          <h1>The Padel Company</h1>
+          <p>AI Support Assistant</p>
+        </div>
+      </div>
+      
+      <h2 class="section-title">Suggested Questions</h2>
+      <div class="suggestions-list" id="suggestionsContainer">
+        <button class="suggestion-btn" data-question="What is The Padel Company?" id="suggestQ1">
+          🎾 &nbsp;What is The Padel Company?
+        </button>
+        <button class="suggestion-btn" data-question="What are your court booking prices?" id="suggestQ2">
+          💰 &nbsp;What are court booking prices?
+        </button>
+        <button class="suggestion-btn" data-question="Which coaches are available in Pune?" id="suggestQ3">
+          🎓 &nbsp;Which coaches are in Pune?
+        </button>
+        <button class="suggestion-btn" data-question="How can I sell my used padel racket?" id="suggestQ4">
+          🎒 &nbsp;How do I sell my racket?
+        </button>
+      </div>
+      
+      <footer class="sidebar-footer">
+        <p>Powered by Groq & ChromaDB</p>
+        <p><a href="https://thepadelcompany.in" target="_blank">thepadelcompany.in</a></p>
+      </footer>
+    </section>
+    
+    <!-- Right Sidebar: Interactive Chat window -->
+    <section class="chat-panel" id="chatContainer">
+      
+      <!-- Top header status bar -->
+      <header class="chat-header" id="chatHeaderBar">
+        <div class="chat-status">
+          <span class="status-dot"></span>
+          <span class="status-text">FastAPI Backend Connected</span>
+        </div>
+        <div class="status-text" style="opacity: 0.5; font-size: 0.8rem;">Local Host :8000</div>
+      </header>
+      
+      <!-- Interactive Messages Container -->
+      <article class="messages-container" id="messagesContainer">
+        <!-- Message bubbles dynamically injected by script -->
+      </article>
+      
+      <!-- Form Input Area -->
+      <footer class="input-area" id="inputFooter">
+        <form class="input-form" id="chatForm">
+          <input 
+            type="text" 
+            id="chatInput" 
+            class="chat-input" 
+            placeholder="Type your question about courts, coaches, or bookings..." 
+            autocomplete="off"
+            required
+          >
+          <button type="submit" class="send-btn" id="sendBtn" aria-label="Send message">
+            <svg viewBox="0 0 24 24">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+            </svg>
+          </button>
+        </form>
+      </footer>
+      
+    </section>
+    
+  </main>
+
+  <!-- Client JavaScript Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
