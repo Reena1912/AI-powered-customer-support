@@ -2,6 +2,10 @@
 
 An AI-powered customer support chatbot for [thepadelcompany.in](https://thepadelcompany.in) built with a full Retrieval-Augmented Generation (RAG) pipeline using **FastAPI**, **ChromaDB**, **SentenceTransformers**, and **Groq's LPU** (Llama 3.3).
 
+Backend Live URL: https://ai-powered-customer-support-7xkn.onrender.com
+
+Frontend Live URL: https://ai-powered-customer-support-eight.vercel.app
+
 ---
 
 ## 🎨 System Architecture
