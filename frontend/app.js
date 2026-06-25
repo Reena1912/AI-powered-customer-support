@@ -1,6 +1,8 @@
 // app.js
 
-const API_URL = 'http://localhost:8000/chat';
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000/chat'
+  : 'https://ai-powered-customer-support.onrender.com/chat';
 const messagesContainer = document.getElementById('messagesContainer');
 const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
@@ -93,7 +95,7 @@ async function askQuestion(questionText) {
   } catch (error) {
     console.error('Error contacting chatbot:', error);
     removeTypingIndicator();
-    appendMessage('Unable to connect to the chatbot server. Please ensure the backend is running at http://localhost:8000', 'bot');
+    appendMessage(`Unable to connect to the chatbot server. Please ensure the backend is running at ${API_URL}`, 'bot');
   } finally {
     // Re-enable inputs
     chatInput.disabled = false;

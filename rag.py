@@ -1,24 +1,7 @@
 from dotenv import load_dotenv
-load_dotenv()
-
-from sentence_transformers import SentenceTransformer
-import chromadb
-from groq import Groq
 import os
 
-# -----------------------------
-# Check API key
-# -----------------------------
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-if not GROQ_API_KEY:
-    raise ValueError(
-        "GROQ_API_KEY not found. "
-        "Create a .env file and add:\n"
-        "GROQ_API_KEY=your_api_key"
-    )
-
-print("Groq API key loaded successfully!")
+load_dotenv()
 
 # -----------------------------
 # Lazy Loading Helpers
@@ -31,6 +14,7 @@ def get_model():
     global _model
     if _model is None:
         print("Loading embedding model...")
+        from sentence_transformers import SentenceTransformer
         _model = SentenceTransformer("all-MiniLM-L6-v2")
         print("Embedding model loaded!")
     return _model
@@ -39,6 +23,7 @@ def get_collection():
     global _collection
     if _collection is None:
         print("Connecting to ChromaDB...")
+        import chromadb
         script_dir = os.path.dirname(os.path.abspath(__file__))
         db_path = os.path.join(script_dir, "chroma_db")
         chroma_client = chromadb.PersistentClient(path=db_path)
@@ -49,7 +34,13 @@ def get_collection():
 def get_groq_client():
     global _groq_client
     if _groq_client is None:
-        _groq_client = Groq(api_key=GROQ_API_KEY)
+        from groq import Groq
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "GROQ_API_KEY not found. Please set the GROQ_API_KEY environment variable."
+            )
+        _groq_client = Groq(api_key=api_key)
     return _groq_client
 
 # -----------------------------
