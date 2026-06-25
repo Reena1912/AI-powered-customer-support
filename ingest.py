@@ -1,7 +1,13 @@
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from pathlib import Path
-from sentence_transformers import SentenceTransformer
-import chromadb
+try:
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    from pathlib import Path
+    from sentence_transformers import SentenceTransformer
+    import chromadb
+except ModuleNotFoundError as e:
+    import sys
+    print(f"Skipping database ingestion: {e}")
+    print("This is normal in production (like Render) since the pre-built chroma_db is committed to Git.")
+    sys.exit(0)
 
 def load_and_chunk(docs_dir="docs"):
 
