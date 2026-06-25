@@ -6,18 +6,44 @@ load_dotenv()
 # -----------------------------
 # Lazy Loading Helpers
 # -----------------------------
-_model = None
 _collection = None
 _groq_client = None
 
-def get_model():
-    global _model
-    if _model is None:
-        print("Loading embedding model...")
-        from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
-        print("Embedding model loaded!")
-    return _model
+def get_embedding(text: str) -> list:
+    import os
+    from huggingface_hub import InferenceClient
+
+    hf_token = os.getenv("HF_TOKEN")
+    if not hf_token:
+        raise ValueError(
+            "HF_TOKEN not found. Please set the HF_TOKEN environment variable.\n"
+            "You can generate a free token at https://huggingface.co/settings/tokens"
+        )
+        
+    print("Requesting embedding from Hugging Face Inference API...")
+    client = InferenceClient(model="sentence-transformers/all-MiniLM-L6-v2", token=hf_token)
+    
+    try:
+        result = client.feature_extraction(text)
+    except Exception as e:
+        raise ValueError(
+            f"Hugging Face Inference API failed: {e}\n\n"
+            "TIP: This is usually because of a missing or misconfigured HF_TOKEN.\n"
+            "Please ensure:\n"
+            "1. You have set HF_TOKEN in your environment variables / Render dashboard.\n"
+            "2. Your token has 'Inference' permissions enabled, or use a Legacy 'Read' token from https://huggingface.co/settings/tokens"
+        ) from e
+    
+    # Convert numpy array to list if needed
+    if hasattr(result, "tolist"):
+        result = result.tolist()
+        
+    # Ensure it's returned as a list of lists of floats for ChromaDB
+    if isinstance(result, list) and len(result) > 0:
+        if not isinstance(result[0], list):
+            result = [result]
+            
+    return result
 
 def get_collection():
     global _collection
@@ -67,8 +93,8 @@ def retrieve(query: str, top_k: int = 4):
 
     print(f"Retrieving chunks for: {query}")
 
-    # Convert question into embedding
-    query_embedding = get_model().encode([query]).tolist()
+    # Convert question into embedding using Hugging Face API
+    query_embedding = get_embedding(query)
 
     # Search ChromaDB
     results = get_collection().query(

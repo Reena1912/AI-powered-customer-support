@@ -8,7 +8,6 @@ __pycache__/
 *.pyc
 
 # Vector DB
-chroma_db/
 
 # Editor Settings
 .vscode/
