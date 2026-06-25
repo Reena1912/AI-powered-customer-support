@@ -4,20 +4,6 @@ An AI-powered customer support chatbot for [thepadelcompany.in](https://thepadel
 
 ---
 
-## 📋 Table of Contents
-1. [System Architecture](#-system-architecture)
-2. [Key Features](#-key-features)
-3. [Project Directory Structure](#-project-directory-structure)
-4. [Local Installation & Setup](#-local-installation--setup)
-5. [How to Run Locally](#-how-to-run-locally)
-6. [API Specification](#-api-specification)
-7. [Parameter Tuning & Configuration](#-parameter-tuning--configuration)
-8. [Adding/Scraping New Knowledge](#-addingscraping-new-knowledge)
-9. [Cloud Deployment (Render & Vercel/Netlify)](#-cloud-deployment-render--vercelnetlify)
-10. [Troubleshooting & FAQs](#-troubleshooting--faqs)
-
----
-
 ## 🎨 System Architecture
 
 The project splits into an offline ingestion phase and a real-time query phase:
@@ -204,64 +190,3 @@ splitter = RecursiveCharacterTextSplitter(
 
 ---
 
-## 📚 Adding/Scraping New Knowledge
-
-To add new information for the chatbot to answer:
-
-### Option A: Add a Custom Doc (Recommended)
-1. Create a new markdown file (e.g., `docs/faq.md`).
-2. Add your questions and answers in natural text.
-3. Re-run `python ingest.py` to index the new files.
-
-### Option B: Scrape a New Page
-1. Open `scraper.py` and append your target website URL to the `URLS` list.
-2. Run the scraper:
-   ```bash
-   python scraper.py
-   ```
-3. Re-run `python ingest.py` to update the vector index.
-
----
-
-## ☁️ Cloud Deployment (Render & Vercel/Netlify)
-
-### 1. Backend Deployment (Render)
-1. Push your repository to GitHub.
-2. Create a new **Web Service** on [Render](https://render.com).
-3. Connect your GitHub repository and specify:
-   * **Runtime**: `Python`
-   * **Build Command**: `pip install -r requirements.txt && python ingest.py` *(This automatically generates your database index at build time so you don't need persistent cloud storage).*
-   * **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-4. Under **Environment Variables**, add:
-   * Key: `GROQ_API_KEY` | Value: `your_actual_groq_api_key`
-5. Click **Deploy**. Render will provide a public URL (e.g., `https://your-backend.onrender.com`).
-
-### 2. Frontend Deployment (Vercel/Netlify)
-1. Open `frontend/app.js` and change `API_URL` to point to your live Render backend URL:
-   ```javascript
-   const API_URL = 'https://your-backend.onrender.com/chat';
-   ```
-2. Commit and push this change to your repository.
-3. Deploy to **Vercel** or **Netlify** by selecting the repository and setting the **Root Directory** to `frontend`.
-
----
-
-## 🛠️ Troubleshooting & FAQs
-
-#### Q1. Why is the chatbot not responding to clicks or queries locally?
-* Check if your FastAPI server is actually running on port `8000`.
-* Ensure you opened the frontend via `http://localhost:3000` rather than by double-clicking the `index.html` file on disk. Chrome/Edge security policies block API calls (`fetch` calls) made from `file://` origins to local server ports.
-
-#### Q2. Render build fails or times out with "No open ports detected"
-* Make sure you are using the lazy-loading setup in `rag.py`. Loading PyTorch and the SentenceTransformer globally blocks Uvicorn from starting up quickly, causing Render's port scans to time out.
-* Double-check your Render environment variables. If `GROQ_API_KEY` is missing or invalid, Python will throw an unhandled `ValueError` on boot and crash silently.
-
-#### Q3. How do I clear the local database cache?
-* Delete the `chroma_db` directory:
-  ```bash
-  # Windows
-  rmdir /s /q chroma_db
-  # macOS/Linux
-  rm -rf chroma_db
-  ```
-* Re-run `python ingest.py` to regenerate the database.
