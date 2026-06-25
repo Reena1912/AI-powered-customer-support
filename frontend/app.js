@@ -2,7 +2,7 @@
 
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:8000/chat'
-  : 'https://ai-powered-customer-support.onrender.com/chat';
+  : 'https://ai-powered-customer-support-7xkn.onrender.com/chat';
 const messagesContainer = document.getElementById('messagesContainer');
 const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
