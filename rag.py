@@ -1,72 +1,105 @@
-from dotenv import load_dotenv
+# rag.py
+"""
+Core RAG (Retrieval-Augmented Generation) pipeline for The Padel Company Chatbot.
+Loads embeddings via Hugging Face Serverless API and generates responses via Groq.
+"""
 import os
+import logging
+from typing import List, Dict, Any, Optional
+from dotenv import load_dotenv
 
 load_dotenv()
 
-# -----------------------------
-# Lazy Loading Helpers
-# -----------------------------
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("rag_pipeline")
+
+# Lazy loaded caches
 _collection = None
 _groq_client = None
 
-def get_embedding(text: str) -> list:
-    import os
+def get_embedding(text: str) -> List[List[float]]:
+    """
+    Generates a 384-dimensional vector embedding for a given string.
+    Queries the Hugging Face Serverless Inference API.
+    
+    Args:
+        text (str): The input text to be embedded.
+        
+    Returns:
+        List[List[float]]: A 2D list of shape (1, 384) representing the text embedding.
+    """
     from huggingface_hub import InferenceClient
 
     hf_token = os.getenv("HF_TOKEN")
     if not hf_token:
         raise ValueError(
-            "HF_TOKEN not found. Please set the HF_TOKEN environment variable.\n"
-            "You can generate a free token at https://huggingface.co/settings/tokens"
+            "HF_TOKEN environment variable not found. Please configure HF_TOKEN in your environment or .env file.\n"
+            "Generate a free token at https://huggingface.co/settings/tokens"
         )
         
-    print("Requesting embedding from Hugging Face Inference API...")
+    logger.info("Requesting embedding from Hugging Face Inference API...")
     client = InferenceClient(model="sentence-transformers/all-MiniLM-L6-v2", token=hf_token)
     
     try:
         result = client.feature_extraction(text)
     except Exception as e:
+        logger.error(f"Hugging Face feature extraction failed: {e}")
         raise ValueError(
             f"Hugging Face Inference API failed: {e}\n\n"
             "TIP: This is usually because of a missing or misconfigured HF_TOKEN.\n"
             "Please ensure:\n"
-            "1. You have set HF_TOKEN in your environment variables / Render dashboard.\n"
-            "2. Your token has 'Inference' permissions enabled, or use a Legacy 'Read' token from https://huggingface.co/settings/tokens"
+            "1. You have set HF_TOKEN in your environment variables or Render dashboard.\n"
+            "2. Your token has 'Inference' permissions enabled, or use a Legacy 'Read' token."
         ) from e
     
-    # Convert numpy array to list if needed
+    # Convert numpy array to list if returned as one
     if hasattr(result, "tolist"):
         result = result.tolist()
         
-    # Ensure it's returned as a list of lists of floats for ChromaDB
+    # Ensure it's returned as a list of lists of floats (2D list) for ChromaDB
     if isinstance(result, list) and len(result) > 0:
         if not isinstance(result[0], list):
             result = [result]
             
     return result
 
-def get_collection():
+def get_collection() -> Any:
+    """
+    Lazily initializes and connects to the ChromaDB vector database.
+    
+    Returns:
+        chromadb.Collection: Connected collection instance.
+    """
     global _collection
     if _collection is None:
-        print("Connecting to ChromaDB...")
+        logger.info("Connecting to ChromaDB persistent collection...")
         import chromadb
         script_dir = os.path.dirname(os.path.abspath(__file__))
         db_path = os.path.join(script_dir, "chroma_db")
         chroma_client = chromadb.PersistentClient(path=db_path)
         _collection = chroma_client.get_collection("padel_docs")
-        print("Connected to ChromaDB!")
+        logger.info("Connected to ChromaDB successfully.")
     return _collection
 
-def get_groq_client():
+def get_groq_client() -> Any:
+    """
+    Lazily initializes the Groq client.
+    
+    Returns:
+        groq.Groq: Groq API client instance.
+    """
     global _groq_client
     if _groq_client is None:
+        logger.info("Initializing Groq API client...")
         from groq import Groq
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             raise ValueError(
-                "GROQ_API_KEY not found. Please set the GROQ_API_KEY environment variable."
+                "GROQ_API_KEY environment variable not found. Please configure it in your environment or .env file."
             )
         _groq_client = Groq(api_key=api_key)
+        logger.info("Groq API client initialized successfully.")
     return _groq_client
 
 # -----------------------------
@@ -86,12 +119,18 @@ if the context has no relevant information on the topic at all.
 4. Never make up information.
 """
 
-# -----------------------------
-# Retrieve relevant chunks
-# -----------------------------
-def retrieve(query: str, top_k: int = 4):
-
-    print(f"Retrieving chunks for: {query}")
+def retrieve(query: str, top_k: int = 4) -> List[str]:
+    """
+    Retrieves the top-k most semantically similar text chunks from the vector database.
+    
+    Args:
+        query (str): The search query from the user.
+        top_k (int): Number of document chunks to retrieve. Default is 4.
+        
+    Returns:
+        List[str]: A list of relevant context documents.
+    """
+    logger.info(f"Retrieving context for query: {query}")
 
     # Convert question into embedding using Hugging Face API
     query_embedding = get_embedding(query)
@@ -103,16 +142,20 @@ def retrieve(query: str, top_k: int = 4):
     )
 
     documents = results["documents"][0]
-
-    print(f"Retrieved {len(documents)} chunks")
-
+    logger.info(f"Retrieved {len(documents)} context chunks successfully.")
     return documents
 
-# -----------------------------
-# Generate final answer
-# -----------------------------
-def generate(query: str, context_chunks):
-
+def generate(query: str, context_chunks: List[str]) -> str:
+    """
+    Generates a structured answer using the LLM (Llama 3.3 via Groq) based on context chunks.
+    
+    Args:
+        query (str): User's search question.
+        context_chunks (List[str]): Context pieces retrieved from vector search.
+        
+    Returns:
+        str: Generated factual response.
+    """
     # Combine chunks into one context
     context = "\n\n---\n\n".join(context_chunks)
 
@@ -123,18 +166,11 @@ def generate(query: str, context_chunks):
         },
         {
             "role": "user",
-            "content": f"""
-Context:
-{context}
-
-Question:
-{query}
-"""
+            "content": f"Context:\n{context}\n\nQuestion:\n{query}\n"
         }
     ]
 
-    print("Generating response from Groq...")
-
+    logger.info("Generating response from Groq API...")
     response = get_groq_client().chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=messages,
@@ -143,18 +179,23 @@ Question:
     )
 
     answer = response.choices[0].message.content
-
+    logger.info("Response generated successfully from Groq.")
     return answer
 
-# -----------------------------
-# Main RAG pipeline
-# -----------------------------
-def ask(query: str):
-
+def ask(query: str) -> Dict[str, Any]:
+    """
+    Executes the complete RAG flow: retrieval, context prompts, and LLM text generation.
+    
+    Args:
+        query (str): The user's input question.
+        
+    Returns:
+        Dict[str, Any]: A dictionary containing:
+            - "answer" (str): Factual answer from the model.
+            - "sources" (List[str]): The context documents used.
+    """
     chunks = retrieve(query)
-
     answer = generate(query, chunks)
-
     return {
         "answer": answer,
         "sources": chunks
